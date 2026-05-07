@@ -1,0 +1,934 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Phonics Pal">
+  <title>Phonics Pal Adventures</title>
+  
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Phonics Pal Adventures","short_name":"Phonics Pal","start_url":".","display":"standalone","background_color":"#38bdf8","theme_color":"#38bdf8","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 100 100\\"><text y=\\"80\\" font-size=\\"80\\">🌟</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
+    body { font-family: 'Fredoka', sans-serif; touch-action: none; overflow: hidden; background-color: #38bdf8; }
+    @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .animate-pop { animation: pop 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67) forwards; }
+    .texture-felt { position: relative; }
+    .texture-felt::after { content: ''; position: absolute; inset: 0; background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.15"/></svg>'); mix-blend-mode: multiply; pointer-events: none; border-radius: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <svg class="hidden" style="display:none;">
+    <filter id="felt-texture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+      <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.15 0" in="noise" result="coloredNoise" />
+      <feBlend in="SourceGraphic" in2="coloredNoise" mode="multiply" />
+    </filter>
+  </svg>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const Heart = ({size=24, className=""}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>;
+    const Volume2 = ({size=24, className=""}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>;
+    const ChevronLeft = ({size=24, className=""}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
+    const Sparkles = ({size=24, className=""}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>;
+    const Camera = ({size=24, className=""}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>;
+    const Trophy = ({size=24, className=""}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7c0 6 3 10 6 10s6-4 6-10V2z"/></svg>;
+
+    const pcmToWav = (base64, sampleRate) => {
+      const binaryString = atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+      const buffer = new ArrayBuffer(44 + len);
+      const view = new DataView(buffer);
+      const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+      writeString(0, 'RIFF'); view.setUint32(4, 36 + len, true); writeString(8, 'WAVE'); writeString(12, 'fmt ');
+      view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(36, 'data'); view.setUint32(40, len, true);
+      new Uint8Array(buffer, 44).set(bytes);
+      return buffer;
+    };
+
+    const AudioEngine = {
+      ctx: null, activeSpeech: null, progressInterval: null, bgmPlaying: false, bgmTimer: null, nextNoteTime: 0, noteIdx: 0,
+      
+      init() { if (!this.ctx) { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } if (this.ctx.state === 'suspended') { this.ctx.resume(); } },
+      unlock() { this.init(); if ('speechSynthesis' in window) { const utterance = new SpeechSynthesisUtterance(''); window.speechSynthesis.speak(utterance); } },
+      playTone(freq, type, duration, vol = 0.1, startTime = 0) { if (!this.ctx) return; const t = startTime || this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, t); gain.gain.setValueAtTime(vol, t); gain.gain.exponentialRampToValueAtTime(0.01, t + duration); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(t); osc.stop(t + duration); },
+      jump() { this.init(); if (!this.ctx) return; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.frequency.setValueAtTime(300, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.2); gain.gain.setValueAtTime(0.1, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2); },
+      correct() { this.init(); this.playTone(523.25, 'sine', 0.4, 0.1); setTimeout(() => this.playTone(659.25, 'sine', 0.4, 0.1), 100); setTimeout(() => this.playTone(783.99, 'sine', 0.6, 0.15), 200); },
+      wrong() { this.init(); this.playTone(150, 'sawtooth', 0.5, 0.1); setTimeout(() => this.playTone(130, 'sawtooth', 0.5, 0.1), 150); },
+      powerup() { this.init(); this.playTone(440, 'square', 0.1, 0.05); setTimeout(() => this.playTone(880, 'square', 0.3, 0.05), 100); },
+
+      startBGM() {
+        this.init();
+        if (this.bgmPlaying) return;
+        this.bgmPlaying = true; this.nextNoteTime = this.ctx.currentTime + 0.1; this.noteIdx = 0;
+        const melody = [[196.00, 0.25], [261.63, 0.25], [0, 0.125], [329.63, 0.125], [261.63, 0.25], [196.00, 0.25], [293.66, 0.25], [349.23, 0.25], [0, 0.125], [392.00, 0.125], [349.23, 0.25], [293.66, 0.25]];
+        const schedule = () => {
+          if (!this.bgmPlaying) return;
+          while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
+            const [freq, dur] = melody[this.noteIdx];
+            if (freq > 0) { this.playTone(freq, 'triangle', dur * 0.8, 0.015, this.nextNoteTime); this.playTone(freq, 'sine', dur * 0.5, 0.015, this.nextNoteTime); }
+            this.nextNoteTime += dur; this.noteIdx = (this.noteIdx + 1) % melody.length;
+          }
+          this.bgmTimer = requestAnimationFrame(schedule);
+        };
+        schedule();
+      },
+      stopBGM() { this.bgmPlaying = false; if (this.bgmTimer) { cancelAnimationFrame(this.bgmTimer); this.bgmTimer = null; } },
+
+      async speak(text, tone = "Say cheerfully and clearly:", voiceName = "Aoede", onProgress = null) {
+        return new Promise(async (resolve) => {
+          if (this.activeSpeech) { try { this.activeSpeech.stop(); } catch(e){} this.activeSpeech = null; }
+          if (this.progressInterval) { clearInterval(this.progressInterval); this.progressInterval = null; }
+
+          try {
+            const payload = {
+              contents: [{ parts: [{ text: `${tone} ${text}` }] }],
+              generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } }
+            };
+
+            // Connecting to your secure Vercel API Backend
+            const response = await fetch('/api/gemini', {
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ endpoint: 'gemini-2.5-flash-preview-tts:generateContent', payload })
+            });
+
+            if (!response.ok) throw new Error("API call failed");
+
+            const data = await response.json();
+            const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+
+            if (inlineData && inlineData.data) {
+              const mimeType = inlineData.mimeType || "audio/L16; rate=24000";
+              const rateMatch = mimeType.match(/rate=(\d+)/);
+              const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+              const wavBuffer = pcmToWav(inlineData.data, sampleRate);
+              
+              this.init();
+              const audioBuffer = await this.ctx.decodeAudioData(wavBuffer);
+              const source = this.ctx.createBufferSource();
+              source.buffer = audioBuffer; source.connect(this.ctx.destination);
+              const duration = audioBuffer.duration;
+              
+              if (onProgress) {
+                 const startTime = this.ctx.currentTime;
+                 this.progressInterval = setInterval(() => {
+                    const elapsed = this.ctx.currentTime - startTime;
+                    if (elapsed >= duration) { clearInterval(this.progressInterval); onProgress(1); } 
+                    else { onProgress(elapsed / duration); }
+                 }, 50);
+              }
+
+              source.onended = () => { if (this.progressInterval) clearInterval(this.progressInterval); resolve(); };
+              source.start(); this.activeSpeech = source;
+            } else {
+                throw new Error("No audio data returned");
+            }
+          } catch (err) {
+            console.error("Gemini TTS Error:", err);
+            // Browser Fallback if the internet disconnects
+            if ('speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(text.toLowerCase());
+              utterance.rate = 0.85; utterance.pitch = 1.2;
+              utterance.onboundary = (e) => { if (e.name === 'word' && onProgress) { onProgress(e.charIndex / text.length); } };
+              utterance.onend = () => { if (onProgress) onProgress(1); resolve(); };
+              utterance.onerror = resolve;
+              window.speechSynthesis.speak(utterance);
+            } else resolve();
+          }
+        });
+      }
+    };
+
+    function App() {
+      const [gameState, setGameState] = useState('START'); 
+      const [customChar, setCustomChar] = useState({ name: '', imgUrl: null });
+      const [level, setLevel] = useState(3);
+      const [score, setScore] = useState(0);
+      const [lives, setLives] = useState(3);
+      
+      const usedWordsRef = useRef([]); // Master memory across all runs
+      const currentRunWordsRef = useRef([]); // Short-term memory for just this run
+      const [wrongGuesses, setWrongGuesses] = useState([]); 
+      
+      const [story, setStory] = useState(null);
+      const [storyImage, setStoryImage] = useState(null);
+      
+      const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+      const [generationPhase, setGenerationPhase] = useState(''); 
+      const [isReadingStory, setIsReadingStory] = useState(false);
+      const [highlightIndex, setHighlightIndex] = useState(-1);
+
+      useEffect(() => {
+        if (gameState === 'PLAYING' && !activeSpelling) { AudioEngine.startBGM(); } 
+        else { AudioEngine.stopBGM(); }
+        return () => AudioEngine.stopBGM();
+      }, [gameState, activeSpelling]);
+
+      const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const url = URL.createObjectURL(file);
+          setCustomChar(prev => ({ ...prev, imgUrl: url }));
+        }
+      };
+
+      const INITIAL_VOCAB = {
+        3: [
+          { word: 'CAT', emoji: '🐱' }, { word: 'DOG', emoji: '🐶' }, { word: 'BEE', emoji: '🐝' }, { word: 'SUN', emoji: '☀️' }, 
+          { word: 'CAR', emoji: '🚗' }, { word: 'HAT', emoji: '🎩' }, { word: 'BUG', emoji: '🐛' }, { word: 'FOX', emoji: '🦊' },
+          { word: 'PIG', emoji: '🐷' }, { word: 'COW', emoji: '🐮' }, { word: 'BAT', emoji: '🦇' }, { word: 'ANT', emoji: '🐜' },
+          { word: 'BUS', emoji: '🚌' }, { word: 'CUP', emoji: '☕' }, { word: 'MAP', emoji: '🗺️' }, { word: 'BED', emoji: '🛏️' },
+          { word: 'BOX', emoji: '📦' }, { word: 'BOY', emoji: '👦' }, { word: 'CAN', emoji: '🥫' }, { word: 'EGG', emoji: '🥚' },
+          { word: 'EYE', emoji: '👁️' }, { word: 'FLY', emoji: '🪰' }, { word: 'ICE', emoji: '🧊' }, { word: 'JAM', emoji: '🍓' },
+          { word: 'KEY', emoji: '🔑' }, { word: 'LOG', emoji: '🪵' }, { word: 'NUT', emoji: '🥜' }, { word: 'OWL', emoji: '🦉' },
+          { word: 'PEN', emoji: '🖊️' }, { word: 'PIE', emoji: '🥧' }, { word: 'RAT', emoji: '🐀' }, { word: 'SEA', emoji: '🌊' },
+          { word: 'TEA', emoji: '🍵' }, { word: 'TOE', emoji: '🦶' }, { word: 'TOY', emoji: '🧸' }, { word: 'VAN', emoji: '🚐' },
+          { word: 'APE', emoji: '🦍' }, { word: 'ARM', emoji: '💪' }, { word: 'EAR', emoji: '👂' }, { word: 'POT', emoji: '🏺' },
+          { word: 'PAN', emoji: '🍳' }, { word: 'TUB', emoji: '🛁' }, { word: 'ZOO', emoji: '🦒' }, { word: 'LEG', emoji: '🦵' },
+          { word: 'LIP', emoji: '👄' }, { word: 'MAN', emoji: '👨' }, { word: 'MUG', emoji: '🍺' }, { word: 'NET', emoji: '🥅' },
+          { word: 'PIN', emoji: '📌' }, { word: 'RED', emoji: '🔴' }, { word: 'TEN', emoji: '🔟' }, { word: 'TWO', emoji: '✌️' },
+          { word: 'WIN', emoji: '🏆' }, { word: 'RUN', emoji: '🏃' }, { word: 'JET', emoji: '✈️' }, { word: 'BOW', emoji: '🎀' },
+          { word: 'SKY', emoji: '☁️' }, { word: 'ART', emoji: '🎨' }, { word: 'GAS', emoji: '⛽' }, { word: 'PET', emoji: '🐕' }
+        ],
+        4: [
+          { word: 'BIRD', emoji: '🐦' }, { word: 'FISH', emoji: '🐟' }, { word: 'TREE', emoji: '🌳' }, { word: 'MOON', emoji: '🌙' },
+          { word: 'STAR', emoji: '⭐' }, { word: 'FROG', emoji: '🐸' }, { word: 'BEAR', emoji: '🐻' }, { word: 'DUCK', emoji: '🦆' },
+          { word: 'LION', emoji: '🦁' }, { word: 'WOLF', emoji: '🐺' }, { word: 'CRAB', emoji: '🦀' }, { word: 'SHIP', emoji: '🚢' },
+          { word: 'KITE', emoji: '🪁' }, { word: 'BALL', emoji: '⚽' }, { word: 'DOLL', emoji: '🎎' }, { word: 'BOAT', emoji: '⛵' },
+          { word: 'BOOK', emoji: '📖' }, { word: 'CAKE', emoji: '🎂' }, { word: 'COAT', emoji: '🧥' }, { word: 'COIN', emoji: '🪙' },
+          { word: 'DESK', emoji: '🪑' }, { word: 'DOOR', emoji: '🚪' }, { word: 'DRUM', emoji: '🥁' }, { word: 'FIRE', emoji: '🔥' },
+          { word: 'FORK', emoji: '🍴' }, { word: 'GOAT', emoji: '🐐' }, { word: 'HAND', emoji: '🤚' }, { word: 'HORN', emoji: '🎺' },
+          { word: 'KING', emoji: '👑' }, { word: 'LEAF', emoji: '🍃' }, { word: 'MILK', emoji: '🥛' }, { word: 'NEST', emoji: '🪹' },
+          { word: 'OVEN', emoji: '🍳' }, { word: 'PEAR', emoji: '🍐' }, { word: 'PLUM', emoji: '🫐' }, { word: 'RING', emoji: '💍' },
+          { word: 'ROOF', emoji: '🏠' }, { word: 'SHOE', emoji: '👞' }, { word: 'SNOW', emoji: '❄️' }, { word: 'SOFA', emoji: '🛋️' },
+          { word: 'TENT', emoji: '⛺' }, { word: 'TOAD', emoji: '🐸' }, { word: 'SOUP', emoji: '🍲' }, { word: 'MEAT', emoji: '🥩' },
+          { word: 'RICE', emoji: '🍚' }, { word: 'CORN', emoji: '🌽' }, { word: 'BOWL', emoji: '🥣' }, { word: 'DISH', emoji: '🍽️' },
+          { word: 'MICE', emoji: '🐁' }, { word: 'BONE', emoji: '🦴' }, { word: 'PONY', emoji: '🐎' }, { word: 'LAMB', emoji: '🐑' },
+          { word: 'CARD', emoji: '🃏' }, { word: 'GAME', emoji: '🎮' }, { word: 'BIKE', emoji: '🚲' }, { word: 'GIRL', emoji: '👧' },
+          { word: 'BABY', emoji: '👶' }, { word: 'CITY', emoji: '🏙️' }, { word: 'ROAD', emoji: '🛣️' }, { word: 'HILL', emoji: '⛰️' },
+          { word: 'LAKE', emoji: '🏞️' }, { word: 'WIND', emoji: '💨' }, { word: 'RAIN', emoji: '🌧️' }, { word: 'SAND', emoji: '🏖️' }
+        ],
+        5: [
+          { word: 'TIGER', emoji: '🐯' }, { word: 'ZEBRA', emoji: '🦓' }, { word: 'SHARK', emoji: '🦈' }, { word: 'SNAKE', emoji: '🐍' },
+          { word: 'TRAIN', emoji: '🚆' }, { word: 'PLANE', emoji: '✈️' }, { word: 'WHALE', emoji: '🐳' }, { word: 'SHEEP', emoji: '🐑' },
+          { word: 'HORSE', emoji: '🐴' }, { word: 'MOUSE', emoji: '🐭' }, { word: 'CLOUD', emoji: '☁️' }, { word: 'APPLE', emoji: '🍎' },
+          { word: 'GRAPE', emoji: '🍇' }, { word: 'SNAIL', emoji: '🐌' }, { word: 'CHAIR', emoji: '🪑' }, { word: 'BREAD', emoji: '🍞' },
+          { word: 'BRICK', emoji: '🧱' }, { word: 'BRUSH', emoji: '🖌️' }, { word: 'CLOCK', emoji: '🕰️' }, { word: 'CROWN', emoji: '👑' },
+          { word: 'DANCE', emoji: '💃' }, { word: 'DREAM', emoji: '💭' }, { word: 'EAGLE', emoji: '🦅' }, { word: 'EARTH', emoji: '🌍' },
+          { word: 'FAIRY', emoji: '🧚' }, { word: 'FLUTE', emoji: '🪈' }, { word: 'GHOST', emoji: '👻' }, { word: 'GLASS', emoji: '🥛' },
+          { word: 'HEART', emoji: '❤️' }, { word: 'HOUSE', emoji: '🏠' }, { word: 'JUICE', emoji: '🧃' }, { word: 'KNIFE', emoji: '🔪' },
+          { word: 'LEMON', emoji: '🍋' }, { word: 'MAGIC', emoji: '🪄' }, { word: 'MELON', emoji: '🍈' }, { word: 'MUSIC', emoji: '🎵' },
+          { word: 'NIGHT', emoji: '🌃' }, { word: 'ONION', emoji: '🧅' }, { word: 'PAINT', emoji: '🎨' }, { word: 'PANTS', emoji: '👖' },
+          { word: 'PEACH', emoji: '🍑' }, { word: 'PIZZA', emoji: '🍕' }, { word: 'PLANT', emoji: '🪴' }, { word: 'ROBOT', emoji: '🤖' },
+          { word: 'SHIRT', emoji: '👕' }, { word: 'SKATE', emoji: '⛸️' }, { word: 'SMILE', emoji: '😊' }, { word: 'SPOON', emoji: '🥄' },
+          { word: 'WATER', emoji: '💧' }, { word: 'RIVER', emoji: '🌊' }, { word: 'BEACH', emoji: '🏖️' }, { word: 'GRASS', emoji: '🌾' },
+          { word: 'BERRY', emoji: '🍓' }, { word: 'CANDY', emoji: '🍬' }, { word: 'HONEY', emoji: '🍯' }, { word: 'LIGHT', emoji: '💡' },
+          { word: 'DOORS', emoji: '🚪' }, { word: 'FLOOR', emoji: '🪵' }, { word: 'PUPPY', emoji: '🐶' }, { word: 'KITTY', emoji: '🐱' }
+        ]
+      };
+      const [vocabData, setVocabData] = useState(INITIAL_VOCAB); 
+      const [activeSpelling, setActiveSpelling] = useState(null); 
+      const isFetchingWords = useRef(false);
+
+      const fetchMoreWordsWithAI = async (currentLevel, currentVocab = []) => {
+        if (isFetchingWords.current) return;
+        isFetchingWords.current = true;
+        
+        const recentWords = currentVocab.slice(-40).map(v => v.word).join(', ');
+        const promptText = `Generate 10 simple ${currentLevel}-letter English words for toddlers to learn phonics. Exclude these words: ${recentWords}. Format strictly as JSON. Only use uppercase letters for the words. Keep them kid-friendly (animals, objects, nature). Output format MUST exactly match this structure: {"words": [{"word": "CAT", "emoji": "🐱"}]}`;
+        
+        const payload = {
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: { type: "OBJECT", properties: { words: { type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, emoji: { type: "STRING" } } } } } }
+          }
+        };
+
+        const attemptFetch = async (retries = 3, delay = 1000) => {
+          try {
+            // Talk to our secure backend proxy
+            const response = await fetch('/api/gemini', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ endpoint: 'gemini-2.5-flash-preview-09-2025:generateContent', payload })
+            });
+            if (!response.ok) throw new Error("API request failed");
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (text) {
+              const tick3 = String.fromCharCode(96, 96, 96);
+              let cleanText = text.split(tick3 + 'json').join('').split(tick3 + 'JSON').join('').split(tick3).join('').trim();
+              const parsedData = JSON.parse(cleanText);
+              const wordsArray = Array.isArray(parsedData) ? parsedData : (parsedData.words || []);
+              
+              const newWords = wordsArray.map(item => ({
+                 word: (item.word || item.Word || '').toUpperCase().trim(), emoji: item.emoji || item.Emoji || '✨'
+              })).filter(item => item.word.length === currentLevel && !currentVocab.some(v => v.word === item.word));
+
+              if (newWords.length > 0) {
+                setVocabData(prev => ({ ...prev, [currentLevel]: [...(prev[currentLevel] || []), ...newWords] }));
+                return; 
+              }
+            }
+            throw new Error("Invalid format or duplicate words");
+          } catch (e) {
+            if (retries > 0) { await new Promise(res => setTimeout(res, delay)); await attemptFetch(retries - 1, delay * 2); }
+          }
+        };
+        await attemptFetch();
+        isFetchingWords.current = false;
+      };
+
+      const generateAdventureStory = async () => {
+        setIsGeneratingStory(true); setStory(null); setStoryImage(null); setHighlightIndex(-1);
+
+        let wordsSubset = 'fun, playing';
+        if (currentRunWordsRef.current.length > 0) {
+          const shuffledWords = [...currentRunWordsRef.current].sort(() => 0.5 - Math.random());
+          wordsSubset = shuffledWords.slice(0, 2).join(' and ');
+        }
+
+        setGenerationPhase('image');
+        let generatedBase64 = null;
+        
+        try {
+          const imagePrompt = `A beautiful watercolor children's book illustration of a cartoon child (not a real photo, stylized 2d drawing only) in a simple, everyday real-life setting featuring: ${wordsSubset}. Bright, colorful, happy, masterpiece. No text.`;
+          let imagePayload = { instances: [{ prompt: imagePrompt }], parameters: { sampleCount: 1 } };
+          
+          // Call our secure backend proxy!
+          let imgRes = await fetch('/api/gemini', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ endpoint: 'imagen-4.0-generate-001:predict', payload: imagePayload })
+          });
+          
+          let imgData = await imgRes.json();
+          if (imgData.error) {
+              imagePayload = { instances: { prompt: imagePrompt }, parameters: { sampleCount: 1 } };
+              imgRes = await fetch('/api/gemini', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                  body: JSON.stringify({ endpoint: 'imagen-4.0-generate-001:predict', payload: imagePayload })
+              });
+              imgData = await imgRes.json();
+          }
+          
+          if (imgData.predictions && imgData.predictions.length > 0) {
+             const prediction = imgData.predictions[0];
+             generatedBase64 = prediction.bytesBase64Encoded || prediction;
+             setStoryImage(`data:image/png;base64,${generatedBase64}`);
+          } else {
+             setStoryImage('error');
+          }
+        } catch(e) { console.error("Image generation failed", e); setStoryImage('error'); }
+
+        setGenerationPhase('text');
+        try {
+          const storyPrompt = `Look at this children's book illustration. Write a very simple, happy 2-sentence story about exactly what is happening in the picture. The main character is a kid named ${customChar.name || "the hero"}. MUST naturally include these words: ${wordsSubset}. Keep it grounded in reality, safe, peaceful, and cute. Only return the text of the story, no formatting.`;
+
+          let storyPayload;
+          if (generatedBase64 && storyImage !== 'error') {
+              storyPayload = { contents: [{ parts: [ { text: storyPrompt }, { inlineData: { mimeType: "image/png", data: generatedBase64 } } ] }] };
+          } else {
+              storyPayload = { contents: [{ parts: [{ text: `Write a very simple, happy 2-sentence story about an everyday real-life activity for a kid named ${customChar.name || "the hero"}. MUST naturally include these words: ${wordsSubset}. Keep it grounded in reality, safe, peaceful, and cute.` }] }] };
+          }
+
+          // Call our secure backend proxy!
+          const textResponse = await fetch('/api/gemini', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ endpoint: 'gemini-2.5-flash-preview-09-2025:generateContent', payload: storyPayload })
+          });
+          const textData = await textResponse.json();
+          const generatedText = textData.candidates?.[0]?.content?.parts?.[0]?.text;
+          
+          if (generatedText) {
+             const cleanText = generatedText.replace(/\*/g, '').trim();
+             setStory(cleanText);
+          } else setStory("Oh no! The story magic faded away. Let's try again next time!");
+        } catch(e) {
+          console.error("Story generation failed", e); setStory("Oops! The magic story spell fizzled out. Let's try again next time!");
+        }
+
+        setIsGeneratingStory(false); setGenerationPhase('');
+      };
+
+      const startGame = async (selectedLevel) => {
+        setLevel(selectedLevel); setScore(0); setLives(3); 
+        currentRunWordsRef.current = []; // Reset short-term memory for new run
+        setWrongGuesses([]); setStory(null); setStoryImage(null); setHighlightIndex(-1);
+        
+        if (!vocabData[selectedLevel] || vocabData[selectedLevel].length < 10) {
+          setGameState('LOADING_AI'); await fetchMoreWordsWithAI(selectedLevel, vocabData[selectedLevel] || []);
+        }
+        setGameState('PLAYING'); AudioEngine.init();
+      };
+
+      const handleInteract = (type) => {
+        if (type === 'heart') { setLives(prev => Math.min(prev + 1, 5)); AudioEngine.powerup(); return; }
+
+        let availableWords = (vocabData[level] || []).filter(w => !usedWordsRef.current.includes(w.word));
+        
+        if (availableWords.length === 0) { 
+           usedWordsRef.current = [];
+           availableWords = vocabData[level] || []; 
+        }
+        
+        if (availableWords.length <= 60 && !isFetchingWords.current) { 
+           fetchMoreWordsWithAI(level, vocabData[level] || []); 
+        }
+
+        const wordData = availableWords[Math.floor(Math.random() * availableWords.length)];
+        const targetIndex = Math.floor(Math.random() * wordData.word.length);
+        const targetLetter = wordData.word[targetIndex];
+        
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('').filter(l => l !== targetLetter);
+        const wrong1 = alphabet[Math.floor(Math.random() * alphabet.length)];
+        const wrong2 = alphabet[Math.floor(Math.random() * alphabet.length)];
+        const options = [targetLetter, wrong1, wrong2].sort(() => Math.random() - 0.5);
+
+        usedWordsRef.current.push(wordData.word);
+        currentRunWordsRef.current.push(wordData.word);
+        
+        setWrongGuesses([]); setActiveSpelling({ ...wordData, targetIndex, targetLetter, options });
+        setTimeout(() => AudioEngine.speak(wordData.word, "Say cheerfully and clearly:", "Aoede"), 300);
+      };
+
+      const handleSpellAnswer = (letter) => {
+        if (letter === activeSpelling.targetLetter) {
+          AudioEngine.correct(); setScore(s => s + (level * 10)); setActiveSpelling(null);
+        } else {
+          AudioEngine.wrong(); setWrongGuesses(prev => [...prev, letter]);
+          setLives(l => { const newLives = l - 1; if (newLives <= 0) { setGameState('GAME_OVER'); setActiveSpelling(null); } return newLives; });
+        }
+      };
+
+      const storyWordsArray = story ? story.split(/\s+/) : [];
+
+      return (
+        <div className="relative w-full h-screen overflow-hidden font-sans select-none" style={{ fontFamily: '"Fredoka", sans-serif' }}>
+          
+          {gameState === 'START' && (
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0ea5e9] to-[#38bdf8] flex flex-col items-center justify-between overflow-hidden">
+              <div className="absolute inset-0 pointer-events-none">
+                 <div className="absolute top-[15%] left-[5%] w-48 h-16 bg-white/90 rounded-full blur-[1px] shadow-[0_15px_25px_rgba(0,0,0,0.1),inset_0_-8px_15px_rgba(186,230,253,0.8)] animate-float-cloud"></div>
+                 <div className="absolute top-[25%] right-[10%] w-32 h-12 bg-white/80 rounded-full blur-[2px] shadow-[0_10px_20px_rgba(0,0,0,0.1),inset_0_-5px_10px_rgba(186,230,253,0.8)] animate-float-cloud" style={{animationDelay: '2s'}}></div>
+              </div>
+
+              <div className="z-10 text-center mt-12 md:mt-20 animate-pop flex flex-col items-center">
+                 <h1 className="text-6xl md:text-8xl font-black drop-shadow-[0_8px_0_#451a03] md:drop-shadow-[0_12px_0_#451a03] mb-2 px-4 text-center leading-tight tracking-tight"
+                     style={{ background: 'linear-gradient(to bottom, #fde047 10%, #d97706 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', WebkitTextStroke: '3px #78350f', filter: 'drop-shadow(0px 4px 20px rgba(251, 191, 36, 0.5))' }}>
+                   PHONICS PAL
+                 </h1>
+                 <h2 className="text-4xl md:text-6xl font-black drop-shadow-[0_6px_0_#0c4a6e] md:drop-shadow-[0_10px_0_#0c4a6e] tracking-widest"
+                     style={{ background: 'linear-gradient(to bottom, #bae6fd 10%, #0284c7 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', WebkitTextStroke: '2px #082f49' }}>
+                   ADVENTURES
+                 </h2>
+              </div>
+
+              <div className="relative w-full max-w-2xl h-72 md:h-96 mt-auto z-10 flex items-end justify-center">
+                 <div className="absolute bottom-[-10%] w-[150%] h-48 md:h-64 rounded-[100%] texture-felt bg-gradient-to-t from-[#14532d] to-[#22c55e] shadow-[0_20px_0_#064e3b,inset_0_8px_20px_rgba(255,255,255,0.2)]"></div>
+                 <div className="absolute left-[8%] md:left-[15%] bottom-16 md:bottom-24 w-16 md:w-24 h-24 md:h-32 rounded-t-xl shadow-[0_15px_15px_rgba(0,0,0,0.4)] z-20"
+                      style={{ background: 'linear-gradient(90deg, #022c22 0%, #22c55e 25%, #4ade80 40%, #166534 80%, #022c22 100%)' }}>
+                   <div className="w-[120%] h-8 md:h-12 -ml-[10%] rounded-xl shadow-[inset_0_3px_8px_rgba(255,255,255,0.6),0_8px_10px_rgba(0,0,0,0.5)] border-b-2 border-[#064e3b]"
+                        style={{ background: 'linear-gradient(90deg, #064e3b 0%, #4ade80 25%, #86efac 40%, #166534 80%, #064e3b 100%)' }}></div>
+                 </div>
+                 <div className="absolute right-[10%] md:right-[20%] bottom-32 md:bottom-48 w-16 h-16 md:w-20 md:h-20 rounded-2xl shadow-[0_20px_20px_rgba(0,0,0,0.4),inset_0_0_25px_#fef08a] z-20 animate-bounce"
+                      style={{ background: 'linear-gradient(135deg, #fde047 0%, #fbbf24 40%, #b45309 100%)', border: '3px solid #fef08a' }}>
+                   <div className="w-full h-full flex items-center justify-center text-yellow-100 font-black text-4xl md:text-5xl drop-shadow-[0_2px_2px_#78350f]">?</div>
+                 </div>
+                 <div className="absolute bottom-[20%] md:bottom-[25%] flex gap-2 md:gap-6 z-30">
+                   <div className="text-[7rem] md:text-[10rem] transform -scale-x-100 drop-shadow-[0_15px_15px_rgba(0,0,0,0.5)] hover:-translate-y-4 transition-transform cursor-pointer origin-bottom" style={{ filter: 'saturate(1.2) contrast(1.1)' }}>👦🏼</div>
+                   <div className="text-[7rem] md:text-[10rem] drop-shadow-[0_15px_15px_rgba(0,0,0,0.5)] hover:-translate-y-4 transition-transform cursor-pointer origin-bottom" style={{ filter: 'saturate(1.2) contrast(1.1)' }}>👧🏽</div>
+                 </div>
+                 <button 
+                    onClick={() => { AudioEngine.unlock(); setGameState('CHAR_CREATE'); }}
+                    className="absolute -bottom-6 md:-bottom-8 z-40 bg-green-500/80 backdrop-blur-md text-white text-3xl md:text-5xl font-black py-6 px-16 rounded-[3rem] border-[4px] border-white/60 shadow-[inset_0_0_30px_rgba(255,255,255,0.7),inset_0_-8px_20px_rgba(21,128,61,0.9),0_15px_0_#14532d,0_25px_25px_rgba(0,0,0,0.5)] active:shadow-[inset_0_0_30px_rgba(255,255,255,0.7),inset_0_-8px_20px_rgba(21,128,61,0.9),0_0px_0_#14532d,0_10px_10px_rgba(0,0,0,0.5)] active:translate-y-[15px] transition-all group overflow-hidden"
+                  >
+                    <span className="relative z-10 drop-shadow-[0_4px_4px_rgba(0,0,0,0.3)] tracking-widest">TAP TO START</span>
+                    <div className="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent group-hover:left-[200%] transition-all duration-[1200ms] ease-in-out transform -skew-x-12"></div>
+                  </button>
+              </div>
+            </div>
+          )}
+
+          {/* CHARACTER CREATE PAGE */}
+          {gameState === 'CHAR_CREATE' && (
+            <div className="absolute inset-0 bg-sky-100 flex flex-col items-center py-6 px-4 overflow-y-auto">
+              <button onClick={() => setGameState('START')} className="absolute top-4 left-4 bg-white p-2 rounded-full text-sky-500 hover:bg-sky-50 shadow-md">
+                <ChevronLeft size={28} />
+              </button>
+              <div className="bg-white px-6 py-2 rounded-full shadow-md text-sky-800 font-bold text-xl mb-6 border-4 border-sky-200">Create Your Character</div>
+              <div className="flex flex-col items-center bg-white p-6 rounded-3xl shadow-xl border-4 border-sky-200 max-w-sm w-full animate-pop">
+                <div className="w-40 h-40 bg-sky-100 rounded-full flex flex-col items-center justify-center relative overflow-hidden mb-6 border-4 border-sky-200 shadow-inner group">
+                  {customChar.imgUrl ? (
+                    <img src={customChar.imgUrl} alt="Custom Char" className="absolute w-full h-full object-cover z-10" onError={() => setCustomChar(prev => ({...prev, imgUrl: null}))} />
+                  ) : (
+                    <label className="w-full h-full flex flex-col items-center justify-center text-4xl z-10 cursor-pointer hover:bg-sky-200 transition-all">
+                      <Camera className="text-sky-400 mb-2" size={40} />
+                      <span className="text-xs font-black text-sky-500 text-center uppercase">Add<br/>Photo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    </label>
+                  )}
+                  {customChar.imgUrl && (
+                     <label className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer">
+                        Change <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                     </label>
+                  )}
+                </div>
+                <input 
+                  type="text" value={customChar.name} onChange={(e) => setCustomChar(prev => ({ ...prev, name: e.target.value.toUpperCase() }))}
+                  placeholder="TYPE YOUR NAME..." maxLength={12}
+                  className="w-full text-center text-2xl font-black text-sky-800 bg-sky-50 border-4 border-sky-200 rounded-2xl py-3 px-4 mb-6 focus:outline-none focus:border-sky-400 placeholder:text-sky-300"
+                />
+                <button 
+                  onClick={() => { AudioEngine.powerup(); setGameState('LEVEL_SELECT'); }}
+                  disabled={!customChar.name || !customChar.imgUrl}
+                  className={`w-full text-2xl font-black py-4 px-10 rounded-full transition-all border-4 ${(!customChar.name || !customChar.imgUrl) ? 'bg-gray-300 text-gray-400 border-gray-200 cursor-not-allowed shadow-none' : 'bg-sky-400 hover:bg-sky-300 text-white shadow-[0_6px_0_#0369a1] active:shadow-none active:translate-y-2 border-white'}`}
+                >
+                  LET'S GO!
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* LEVEL SELECT PAGE */}
+          {gameState === 'LEVEL_SELECT' && (
+            <div className="absolute inset-0 bg-[#cbf2d6] flex flex-col items-center py-6 px-4 overflow-y-auto">
+              <button onClick={() => setGameState('CHAR_CREATE')} className="absolute top-4 left-4 bg-white p-2 rounded-full text-green-600 hover:bg-gray-100 shadow-md">
+                <ChevronLeft size={28} />
+              </button>
+              <div className="bg-white px-6 py-2 rounded-full shadow-md text-green-800 font-bold text-xl mb-8 border-4 border-green-200">Level Select</div>
+              <div className="flex flex-col gap-4 w-full max-w-sm">
+                <button onClick={() => startGame(3)} className="bg-green-400 rounded-3xl p-5 shadow-[0_8px_0_#15803d] active:shadow-none active:translate-y-2 transition-all border-4 border-white flex items-center group hover:bg-green-300">
+                  <div className="bg-white text-green-600 w-14 h-14 rounded-full flex items-center justify-center text-3xl font-black shadow-inner border-2 border-green-200 group-hover:scale-110 transition-transform">3</div>
+                  <div className="ml-4 flex flex-col items-start"><span className="text-white text-2xl font-black drop-shadow-md">SIMPLE</span><span className="text-green-800 text-sm font-bold opacity-80 uppercase">3 Letters</span></div>
+                </button>
+                <button onClick={() => startGame(4)} className="bg-yellow-400 rounded-3xl p-5 shadow-[0_8px_0_#a16207] active:shadow-none active:translate-y-2 transition-all border-4 border-white flex items-center group hover:bg-yellow-300">
+                  <div className="bg-white text-yellow-600 w-14 h-14 rounded-full flex items-center justify-center text-3xl font-black shadow-inner border-2 border-yellow-200 group-hover:scale-110 transition-transform">4</div>
+                  <div className="ml-4 flex flex-col items-start"><span className="text-white text-2xl font-black drop-shadow-md">INTERMEDIATE</span><span className="text-yellow-800 text-sm font-bold opacity-80 uppercase">4 Letters</span></div>
+                </button>
+                <button onClick={() => startGame(5)} className="bg-red-400 rounded-3xl p-5 shadow-[0_8px_0_#b91c1c] active:shadow-none active:translate-y-2 transition-all border-4 border-white flex items-center group hover:bg-red-300">
+                  <div className="bg-white text-red-600 w-14 h-14 rounded-full flex items-center justify-center text-3xl font-black shadow-inner border-2 border-red-200 group-hover:scale-110 transition-transform">5</div>
+                  <div className="ml-4 flex flex-col items-start"><span className="text-white text-2xl font-black drop-shadow-md">DIFFICULT</span><span className="text-red-900 text-sm font-bold opacity-80 uppercase">5 Letters</span></div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* LOADING AI PAGE */}
+          {gameState === 'LOADING_AI' && (
+            <div className="absolute inset-0 bg-[#cbf2d6] flex flex-col items-center justify-center z-50 p-4">
+              <div className="bg-white p-8 rounded-3xl shadow-2xl border-4 border-green-300 flex flex-col items-center max-w-sm w-full text-center animate-pop">
+                 <div className="text-6xl mb-6 animate-spin" style={{ animationDuration: '3s' }}>🧠</div>
+                 <h2 className="text-2xl font-black text-green-700 uppercase tracking-widest mb-4">AI is Thinking...</h2>
+                 <p className="text-lg font-bold text-gray-500">Generating brand new words for your adventure!</p>
+              </div>
+            </div>
+          )}
+
+          {/* GAME VIEW */}
+          {gameState === 'PLAYING' && (
+            <>
+              <TwoDGameEngine customChar={customChar} isPaused={!!activeSpelling} onInteract={handleInteract} />
+              
+              <div className="absolute top-4 left-4 z-10 text-white font-black text-2xl md:text-3xl drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style={{ WebkitTextStroke: '1px black' }}>
+                <div className="flex items-center gap-2"><Trophy className="text-yellow-400 drop-shadow-md" size={28} />{score}</div>
+              </div>
+              
+              <div className="absolute top-4 right-4 z-10 flex gap-1 md:gap-2">
+                {[...Array(5)].map((_, i) => (<Heart key={i} size={28} className={`${i < lives ? 'fill-red-500 text-red-700' : 'fill-gray-400/50 text-gray-600/50'} drop-shadow-md transition-all duration-300`} />))}
+              </div>
+
+              {!activeSpelling && (
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur px-4 py-2 rounded-2xl shadow-lg border-2 border-sky-200 flex items-center gap-2 text-xs md:text-sm font-bold text-sky-800 pointer-events-none">
+                  <span className="text-lg">⬆️</span><span className="text-center uppercase">Tap to Jump!</span>
+                </div>
+              )}
+
+              {activeSpelling && (
+                <div className="absolute inset-0 bg-sky-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-4">
+                  <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-5 md:p-10 w-full max-w-lg shadow-2xl border-[6px] md:border-[10px] border-sky-50 flex flex-col items-center animate-pop text-center">
+                    <div className="text-6xl md:text-8xl mb-4 md:mb-6 bg-sky-50 w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center border-4 border-sky-100 shadow-inner">{activeSpelling.emoji}</div>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-sky-800 mb-6 md:mb-8 flex items-center justify-center flex-wrap gap-2 uppercase tracking-wide">
+                      SPELL IT, {customChar.name}!
+                      <button onClick={() => AudioEngine.speak(activeSpelling.word, "Say cheerfully and clearly:", "Aoede")} className="bg-sky-400 hover:bg-sky-500 text-white p-2 md:p-3 rounded-full shadow-md ml-2 transition-transform active:scale-95"><Volume2 size={24}/></button>
+                    </h2>
+                    <div className="flex gap-1 sm:gap-2 md:gap-3 mb-8 md:mb-10 justify-center w-full">
+                      {activeSpelling.word.split('').map((char, idx) => (
+                        <div key={idx} className={`flex-1 max-w-[45px] sm:max-w-[50px] md:max-w-[60px] h-12 sm:h-14 md:h-20 bg-sky-50 rounded-lg md:rounded-xl border-b-[4px] md:border-b-8 flex items-center justify-center text-2xl sm:text-3xl md:text-5xl font-black ${idx === activeSpelling.targetIndex ? 'text-sky-500 border-sky-400 animate-pulse' : 'text-sky-800 border-sky-100'}`}>
+                          {idx === activeSpelling.targetIndex ? '?' : char}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 md:gap-4 w-full">
+                      {activeSpelling.options.map((option, idx) => {
+                         const isWrong = wrongGuesses.includes(option);
+                         return (
+                            <button 
+                              key={idx} 
+                              disabled={isWrong}
+                              onClick={(e) => { e.stopPropagation(); if (!isWrong) handleSpellAnswer(option); }} 
+                              className={`transition-all text-2xl md:text-4xl font-black py-3 md:py-5 rounded-xl md:rounded-2xl border-[3px] md:border-4 ${
+                                isWrong 
+                                  ? 'bg-red-100 border-red-200 text-red-400 opacity-50 cursor-not-allowed shadow-none translate-y-1' 
+                                  : 'bg-white hover:bg-sky-400 hover:text-white border-sky-100 text-sky-600 shadow-[0_4px_0_#bae6fd] md:shadow-[0_6px_0_#bae6fd] active:shadow-none active:translate-y-1'
+                              }`}>
+                              {option}
+                            </button>
+                         );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* GAME OVER SCREEN */}
+          {gameState === 'GAME_OVER' && (
+            <div className="absolute inset-0 bg-red-500/90 backdrop-blur-md flex flex-col items-center justify-start md:justify-center z-[100] p-4 overflow-y-auto">
+               <div className="text-center bg-white p-6 md:p-10 rounded-[3rem] shadow-2xl border-[8px] md:border-[12px] border-red-200 animate-pop w-full max-w-lg my-8">
+                  <h1 className="text-5xl md:text-6xl font-black text-red-500 mb-2 italic">GAME OVER</h1>
+                  <p className="text-2xl font-black text-gray-500 mb-6 uppercase">Score: <span className="text-sky-500">{score}</span></p>
+                  
+                  <div className="bg-sky-50 p-4 md:p-6 rounded-[2rem] border-4 border-sky-100 mb-6 min-h-[120px] flex flex-col justify-center transition-all">
+                    {!isGeneratingStory && !storyImage && (
+                      <button onClick={generateAdventureStory} className="w-full bg-indigo-500 hover:bg-indigo-400 text-white text-lg md:text-xl font-black py-4 rounded-full shadow-[0_6px_0_#3730a3] active:shadow-none active:translate-y-2 border-4 border-indigo-300 transition-all flex flex-col sm:flex-row items-center justify-center gap-2">
+                        <Sparkles size={24} className="text-yellow-300" /><span>✨ Tell My Adventure Story ✨</span>
+                      </button>
+                    )}
+                    
+                    {isGeneratingStory && (
+                      <div className="flex flex-col items-center py-4">
+                        {generationPhase === 'image' && (
+                           <>
+                             <div className="text-4xl animate-bounce mb-2">🎨</div>
+                             <p className="text-sky-600 font-bold uppercase tracking-widest text-sm">Painting Illustration...</p>
+                           </>
+                        )}
+                        {generationPhase === 'text' && (
+                           <>
+                             {storyImage && storyImage !== 'error' && (
+                                <img src={storyImage} alt="Adventure preview" className="w-full max-h-48 object-cover rounded-2xl mb-4 shadow-md opacity-70" />
+                             )}
+                             <div className="text-4xl animate-spin mb-2 mt-2">💫</div>
+                             <p className="text-sky-600 font-bold uppercase tracking-widest text-sm">Writing the Story...</p>
+                           </>
+                        )}
+                      </div>
+                    )}
+
+                    {!isGeneratingStory && (storyImage || story) && (
+                      <div className="text-left animate-pop flex flex-col items-center">
+                        <h3 className="text-lg md:text-xl font-black text-indigo-600 mb-3 flex items-center gap-2 w-full"><Sparkles size={20} className="text-yellow-400"/> My Adventure</h3>
+                        
+                        {storyImage === 'error' && (
+                          <div className="w-full h-32 bg-sky-50 rounded-2xl flex flex-col items-center justify-center mb-4 border-4 border-sky-100 border-dashed">
+                            <div className="text-3xl mb-1">🙈</div><p className="text-sky-500 font-bold text-xs uppercase tracking-widest px-4 text-center">The AI couldn't draw this one,<br/>but the story is still fun!</p>
+                          </div>
+                        )}
+                        {storyImage && storyImage !== 'error' && (
+                          <img src={storyImage} alt="Adventure" className="w-full max-h-64 object-cover rounded-2xl mb-4 shadow-lg border-4 border-white animate-pop" />
+                        )}
+
+                        <p className="text-gray-700 font-bold text-sm md:text-base leading-relaxed w-full">
+                          {storyWordsArray.map((word, i) => (
+                            <span key={i} className={`transition-colors duration-200 ${i === highlightIndex ? 'text-sky-600 bg-yellow-200/70 rounded-md px-1' : ''}`}>{word}{' '}</span>
+                          ))}
+                        </p>
+                        
+                        {story && (
+                            <button onClick={async () => { setIsReadingStory(true); setHighlightIndex(-1); await AudioEngine.speak(story, "Read this story passionately and expressively like a magical bedtime story:", "Aoede", (progress) => { const idx = Math.min(Math.floor(progress * storyWordsArray.length), storyWordsArray.length - 1); setHighlightIndex(idx); }); setHighlightIndex(-1); setIsReadingStory(false); }} disabled={isReadingStory} className="mt-4 bg-sky-200 hover:bg-sky-300 disabled:opacity-50 text-sky-800 font-bold py-2 px-4 rounded-xl text-sm flex items-center gap-2 transition-colors self-start">
+                               <Volume2 size={16}/> {isReadingStory ? "Reading..." : "Read Aloud"}
+                            </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-3 md:gap-4 w-full">
+                    <button onClick={() => startGame(level)} className="w-full bg-green-500 hover:bg-green-400 text-white text-2xl font-black py-4 md:py-5 rounded-full shadow-[0_8px_0_#166534] active:shadow-none active:translate-y-2 border-4 border-white transition-all">TRY AGAIN</button>
+                    <button onClick={() => setGameState('START')} className="font-bold text-gray-400 uppercase tracking-widest text-sm hover:text-gray-600 transition-colors">Home Menu</button>
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // --- 2D CANVAS GAME ENGINE ---
+    function TwoDGameEngine({ customChar, isPaused, onInteract }) {
+      const canvasRef = useRef(null);
+      const gameData = useRef({ player: { x: window.innerWidth * 0.15, y: 0, width: 110, height: 110, vy: 0, isJumping: false }, items: [], clouds: [], bgMountains: [], midHills: [], fgBushes: [], stars: [], speed: 6, lastInteractTime: 0, groundOffset: 0 });
+
+      const interactRef = useRef(onInteract);
+      useEffect(() => { interactRef.current = onInteract; }, [onInteract]);
+
+      const isPausedRef = useRef(isPaused);
+      const isInteractionLocked = useRef(false);
+      
+      useEffect(() => { 
+          isPausedRef.current = isPaused; 
+          if (!isPaused) {
+              isInteractionLocked.current = false;
+          }
+      }, [isPaused]);
+
+      const forestEmojis = ['🦊', '🦉', '🐰', '🐸', '🦋', '🍓', '🍄', '🍯', '🐿️', '🐌', '🐞', '🍎', '🌻', '🌲'];
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        if (gameData.current.clouds.length === 0) {
+          for(let i=0; i<8; i++) gameData.current.clouds.push({ x: Math.random() * 2000, y: Math.random() * 250, size: Math.random() * 40 + 40, speed: Math.random() * 0.5 + 0.2 });
+          for(let i=0; i<5; i++) gameData.current.bgMountains.push({ x: i * 500, w: 600 + Math.random() * 300, h: 250 + Math.random() * 150 });
+          for(let i=0; i<4; i++) gameData.current.midHills.push({ x: i * 600, w: 700 + Math.random() * 200, h: 120 + Math.random() * 80 });
+          for(let i=0; i<15; i++) gameData.current.fgBushes.push({ x: Math.random() * 2000, r: 30 + Math.random() * 40 });
+          for(let i=0; i<50; i++) gameData.current.stars.push({ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight * 0.6, r: Math.random() * 2, alpha: Math.random() });
+        }
+
+        const playerImg = new Image();
+        let imgStatus = 'loading';
+        playerImg.onload = () => { imgStatus = 'loaded'; };
+        playerImg.onerror = () => { imgStatus = 'error'; };
+        playerImg.src = customChar.imgUrl || '';
+
+        const handleJump = (e) => {
+          if (e && e.type === 'keydown' && e.code !== 'Space') return;
+          if (e && e.type === 'keydown' && e.code === 'Space') e.preventDefault();
+          const state = gameData.current;
+          if (!state.player.isJumping && !isPausedRef.current) {
+            state.player.vy = -18;
+            state.player.isJumping = true;
+            AudioEngine.jump();
+          }
+        };
+
+        window.addEventListener('keydown', handleJump, { passive: false });
+        window.addEventListener('touchstart', (e) => { if(!isPausedRef.current) { handleJump(); e.preventDefault(); } }, { passive: false });
+        window.addEventListener('mousedown', handleJump);
+
+        let reqId;
+        const animate = () => {
+          reqId = requestAnimationFrame(animate);
+
+          if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+          }
+
+          const state = gameData.current;
+          const groundY = canvas.height - 120;
+          const p = state.player;
+          const now = Date.now();
+          
+          const timeVal = now * 0.0001;
+          const dayPhase = (Math.sin(timeVal) + 1) / 2;
+          const nightAlpha = 1 - dayPhase;
+          const sunsetAlpha = Math.max(0, 1 - Math.abs(dayPhase - 0.5) * 4);
+
+          p.width = Math.min(110, window.innerWidth * 0.22); p.height = p.width; p.x = window.innerWidth * 0.15;
+
+          if (!isPausedRef.current) {
+            if (p.isJumping) { p.y += p.vy; p.vy += 0.8; if (p.y >= groundY - p.height) { p.y = groundY - p.height; p.isJumping = false; p.vy = 0; } } else { p.y = groundY - p.height; }
+
+            state.groundOffset = (state.groundOffset + state.speed) % 200;
+            state.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.size * 2 < 0) c.x = canvas.width + 100; });
+            state.bgMountains.forEach(m => { m.x -= state.speed * 0.1; if (m.x + m.w < 0) m.x = canvas.width + 100; });
+            state.midHills.forEach(h => { h.x -= state.speed * 0.3; if (h.x + h.w < 0) h.x = canvas.width + 100; });
+            state.fgBushes.forEach(b => { b.x -= state.speed * 1.5; if (b.x + b.r < 0) b.x = canvas.width + 100; });
+
+            if (state.items.length < 3) {
+              let lastX = state.items.length > 0 ? state.items[state.items.length - 1].x : canvas.width;
+              let nextX = Math.max(canvas.width, lastX) + 400 + Math.random() * 500;
+              const typeRand = Math.random();
+              
+              const newSize = Math.min(100, window.innerWidth * 0.20);
+              let type = 'question'; 
+              let yPos = groundY - newSize + 10; 
+              let emoji = '';
+              
+              if (typeRand < 0.1) { type = 'heart'; yPos = groundY - 260; } 
+              else if (typeRand < 0.4) { type = 'question'; yPos = groundY - 260; } 
+              else { 
+                  type = 'forest_item'; 
+                  emoji = forestEmojis[Math.floor(Math.random() * forestEmojis.length)];
+              }
+              
+              state.items.push({ x: nextX, y: yPos, size: newSize, type, emoji, active: true, offsetAnim: Math.random()*Math.PI*2, seed: Math.random() });
+            }
+
+            for (let i = state.items.length - 1; i >= 0; i--) {
+              const item = state.items[i];
+              item.x -= state.speed;
+              if (item.x < -100) { state.items.splice(i, 1); continue; }
+              const isColliding = (p.x < item.x + item.size && p.x + p.width > item.x && p.y < item.y + item.size && p.y + p.height > item.y);
+              
+              if (isColliding && p.isJumping && now - state.lastInteractTime > 1000 && !isInteractionLocked.current) {
+                 state.items.splice(i, 1); 
+                 state.lastInteractTime = now; 
+                 if (item.type !== 'heart') {
+                     isPausedRef.current = true; 
+                     isInteractionLocked.current = true;
+                 }
+                 interactRef.current(item.type); 
+              }
+            }
+          }
+
+          const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          skyGrad.addColorStop(0, '#7dd3fc'); skyGrad.addColorStop(1, '#e0f2fe');
+          ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          if (sunsetAlpha > 0) {
+              ctx.globalAlpha = sunsetAlpha;
+              const sunGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+              sunGrad.addColorStop(0, '#f43f5e'); sunGrad.addColorStop(1, '#fbbf24');
+              ctx.fillStyle = sunGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.globalAlpha = 1.0;
+          }
+          if (nightAlpha > 0) {
+              ctx.globalAlpha = nightAlpha;
+              const nightGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+              nightGrad.addColorStop(0, '#0f172a'); nightGrad.addColorStop(1, '#312e81');
+              ctx.fillStyle = nightGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.fillStyle = 'white';
+              state.stars.forEach(s => {
+                 ctx.globalAlpha = nightAlpha * (0.5 + 0.5 * Math.sin(now * 0.005 + s.alpha * 10));
+                 ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+              });
+              ctx.globalAlpha = 1.0;
+          }
+
+          ctx.save(); ctx.translate(canvas.width/2, canvas.height); ctx.rotate(timeVal);
+          ctx.fillStyle = '#fde047'; ctx.shadowBlur = 40; ctx.shadowColor = '#fde047';
+          ctx.beginPath(); ctx.arc(0, -canvas.height*0.8, 50, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#e2e8f0'; ctx.shadowBlur = 30; ctx.shadowColor = 'white';
+          ctx.beginPath(); ctx.arc(0, canvas.height*0.8, 40, 0, Math.PI*2); ctx.fill();
+          ctx.restore(); ctx.shadowBlur = 0;
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          state.clouds.forEach(c => { ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI*2); ctx.arc(c.x + c.size*0.5, c.y - c.size*0.3, c.size*0.6, 0, Math.PI*2); ctx.arc(c.x + c.size, c.y, c.size*0.8, 0, Math.PI*2); ctx.fill(); });
+
+          ctx.fillStyle = '#0f766e'; ctx.globalAlpha = 0.6; 
+          state.bgMountains.forEach(m => { ctx.beginPath(); ctx.ellipse(m.x + m.w/2, groundY, m.w/2, m.h, 0, Math.PI, 0); ctx.fill(); }); ctx.globalAlpha = 1.0;
+
+          ctx.fillStyle = '#16a34a';
+          state.midHills.forEach(h => { ctx.beginPath(); ctx.ellipse(h.x + h.w/2, groundY, h.w/2, h.h, 0, Math.PI, 0); ctx.fill(); });
+
+          if (nightAlpha > 0) { ctx.fillStyle = 'rgba(15, 23, 42, ' + (nightAlpha * 0.6) + ')'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+          ctx.fillStyle = '#b45309'; ctx.fillRect(0, groundY + 30, canvas.width, canvas.height);
+          ctx.fillStyle = '#92400e';
+          for(let i=0; i<canvas.width + 100; i+=40) {
+            for(let j=0; j<canvas.height - groundY; j+=40) {
+               if ((Math.floor(i/40) + Math.floor(j/40)) % 2 === 0) { ctx.fillRect(i - (state.groundOffset % 40), groundY + 30 + j, 20, 20); }
+            }
+          }
+          
+          ctx.fillStyle = '#4ade80'; ctx.fillRect(0, groundY, canvas.width, 30);
+          ctx.fillStyle = '#16a34a'; ctx.fillRect(0, groundY + 30, canvas.width, 10);
+          for(let i = 0; i < canvas.width + 200; i += 80) {
+              let tx = i - (state.groundOffset % 80); ctx.beginPath(); ctx.arc(tx, groundY+40, 15, Math.PI, 0); ctx.fill();
+          }
+
+          state.items.forEach(item => {
+            let drawY = item.y;
+            if (item.type === 'heart' || item.type === 'question' || item.type === 'forest_item') { 
+                drawY += Math.sin(now * 0.005 + item.offsetAnim) * 12; 
+            }
+            ctx.save(); ctx.translate(item.x, drawY);
+            if (item.type === 'question') {
+              ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 10;
+              ctx.fillStyle = '#d97706'; ctx.fillRect(0, 0, item.size, item.size); 
+              ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+              ctx.fillStyle = '#fde047'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(item.size,0); ctx.lineTo(item.size-8,8); ctx.lineTo(8,8); ctx.lineTo(8,item.size-8); ctx.lineTo(0,item.size); ctx.fill();
+              ctx.fillStyle = '#92400e'; ctx.beginPath(); ctx.moveTo(item.size,item.size); ctx.lineTo(0,item.size); ctx.lineTo(8,item.size-8); ctx.lineTo(item.size-8,item.size-8); ctx.lineTo(item.size-8,8); ctx.lineTo(item.size,0); ctx.fill();
+              ctx.fillStyle = '#fbbf24'; ctx.fillRect(8, 8, item.size-16, item.size-16);
+              ctx.fillStyle = '#78350f'; const r = item.size*0.06;
+              ctx.beginPath(); ctx.arc(14, 14, r, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(item.size-14, 14, r, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(14, item.size-14, r, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(item.size-14, item.size-14, r, 0, Math.PI*2); ctx.fill();
+              ctx.fillStyle = '#78350f'; ctx.font = `bold ${item.size * 0.6}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', item.size/2, item.size/2 + 4);
+            } else if (item.type === 'heart') {
+              const w = item.size * 0.5; const h = item.size * 0.5;
+              ctx.translate(item.size/2, item.size/2); ctx.shadowColor = 'rgba(239,68,68,0.6)'; ctx.shadowBlur = 15; ctx.fillStyle = '#ef4444';
+              ctx.beginPath(); ctx.moveTo(0, h*0.3); ctx.bezierCurveTo(w*0.5, -h*0.3, w, h*0.4, 0, h); ctx.bezierCurveTo(-w, h*0.4, -w*0.5, -h*0.3, 0, h*0.3); ctx.fill(); ctx.shadowBlur = 0;
+              ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(-w*0.2, 0, w*0.1, h*0.2, -Math.PI/4, 0, Math.PI*2); ctx.fill();
+            } else if (item.type === 'forest_item') {
+              ctx.font = `${item.size * 0.9}px Arial`; 
+              ctx.textAlign = 'center'; 
+              ctx.textBaseline = 'middle';
+              ctx.shadowColor = 'rgba(0,0,0,0.6)'; 
+              ctx.shadowBlur = 15; 
+              ctx.shadowOffsetY = 10;
+              ctx.fillText(item.emoji, item.size/2, item.size/2 + 5);
+              ctx.shadowBlur = 0; 
+              ctx.shadowOffsetY = 0;
+              ctx.fillText(item.emoji, item.size/2, item.size/2);
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+              ctx.beginPath(); 
+              ctx.ellipse(item.size*0.3, item.size*0.2, item.size*0.2, item.size*0.1, -Math.PI/4, 0, Math.PI*2); 
+              ctx.fill();
+            }
+            ctx.restore();
+          });
+
+          ctx.save();
+          // Drop Shadow ellipse on the ground
+          ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x + p.width/2, groundY, p.width*0.4, p.width*0.1, 0, 0, Math.PI*2); ctx.fill();
+          
+          ctx.translate(p.x + p.width/2, p.y + p.height/2);
+          if (p.isJumping) { ctx.rotate(-0.15); } else if (!isPausedRef.current) { const walkCycle = Math.sin(now * 0.015); ctx.rotate(walkCycle * 0.05); ctx.translate(0, Math.abs(Math.sin(now * 0.025)) * 4 - 2); }
+
+          if (imgStatus === 'loaded' && playerImg.width > 0) {
+            const imgRatio = playerImg.width / playerImg.height;
+            let drawW = p.width;
+            let drawH = p.height;
+            if (imgRatio > 1) { drawH = p.width / imgRatio; } else { drawW = p.height * imgRatio; }
+            ctx.drawImage(playerImg, -drawW/2, -drawH/2, drawW, drawH);
+          } else {
+            ctx.fillStyle = '#3b82f6'; ctx.fillRect(-p.width/2, -p.height/2, p.width, p.height); ctx.fillStyle = 'white'; ctx.font = `${p.width * 0.5}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('👤', 0, 5);
+          }
+          ctx.restore();
+
+          ctx.fillStyle = '#064e3b';
+          state.fgBushes.forEach(b => { ctx.beginPath(); ctx.arc(b.x, canvas.height, b.r, 0, Math.PI*2); ctx.fill(); });
+          if (nightAlpha > 0) { ctx.fillStyle = 'rgba(15, 23, 42, ' + (nightAlpha * 0.4) + ')'; ctx.fillRect(0, canvas.height - 100, canvas.width, 100); }
+        };
+        
+        animate();
+        return () => { cancelAnimationFrame(reqId); window.removeEventListener('keydown', handleJump); window.removeEventListener('touchstart', handleJump); window.removeEventListener('mousedown', handleJump); };
+      }, [customChar.imgUrl]); 
+
+      return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" style={{ touchAction: 'none' }} />;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
+
+```
